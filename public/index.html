@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Quadro Colaborativo</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div id="loginDiv">
+      <h2>Digite seu nome para começar a desenhar</h2>
+      <input type="text" id="nameInput" placeholder="Seu nome" />
+      <button id="joinBtn">Entrar</button>
+    </div>
+    
+    <div id="playersPanel">
+      <h3>Jogadores Online</h3>
+      <ul id="playersList"></ul>
+    </div>
+
+    <canvas id="board"></canvas>
+    <div id="menu">
+      <label for="colorPicker">Escolha sua cor:</label>
+      <input type="color" id="colorPicker" />
+    </div>
+    <div id="users"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>
