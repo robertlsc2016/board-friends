@@ -12,7 +12,7 @@ const clearBtn = document.getElementById("clearBtn"); // Referência ao botão d
 // Ajustar o tamanho do canvas
 function resizeCanvas() {
   canvas.width = 360;
-  canvas.height = 500;
+  canvas.height = 580;
 }
 window.addEventListener("load", resizeCanvas);
 window.addEventListener("resize", resizeCanvas);
