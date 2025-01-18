@@ -1,14 +1,35 @@
 const express = require("express");
 const app = express();
-const http = require("http").createServer(app);
-const io = require("socket.io")(http);
+const http = require("http");
+const https = require("https");
+const fs = require("fs"); // Adicionei a importação do fs para ler os arquivos do certificado
+
+// Lendo os certificados SSL
+const privateKey = fs.readFileSync(
+  "/etc/letsencrypt/live/board-friends.duckdns.org/privkey.pem",
+  "utf8"
+);
+const certificate = fs.readFileSync(
+  "/etc/letsencrypt/live/board-friends.duckdns.org/cert.pem",
+  "utf8"
+);
+const ca = fs.readFileSync(
+  "/etc/letsencrypt/live/board-friends.duckdns.org/chain.pem",
+  "utf8"
+);
+
+const credentials = { key: privateKey, cert: certificate, ca: ca };
+
+// Criando o servidor HTTPS
+const server = https.createServer(credentials, app);
+const io = require("socket.io")(server);
+
 const port = process.env.PORT || 5000;
 
 // Servir arquivos estáticos da pasta 'public'
 app.use(express.static("public"));
 
 // Objeto para armazenar informações dos usuários
-// Cada usuário terá: nome, cor e posição do cursor
 const users = {};
 
 // Array para armazenar o histórico de desenhos
@@ -93,6 +114,7 @@ io.on("connection", (socket) => {
   });
 });
 
-http.listen(port, () => {
-  console.log(`Servidor rodando na porta ${port}`);
+// Servindo o servidor HTTPS na porta configurada
+server.listen(port, () => {
+  console.log(`Servidor HTTPS rodando na porta ${port}`);
 });
