@@ -1,14 +1,22 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
   <head>
+    <meta property="og:title" content="Board Friends" />
+
+    <meta
+      property="og:description"
+      content="Um quadro de desenhos virtual - Por Robert Luiz"
+    />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta charset="UTF-8" />
     <title>Board Friends</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div id="loginDiv">
-      <h2>Digite seu nome para começar a desenhar</h2>
-      <input type="text" id="nameInput" placeholder="Seu nome" />
+      <h2>Digite seu nick para começar a desenhar</h2>
+      <input type="text" id="nameInput" placeholder="nickname" />
       <button id="joinBtn">Entrar</button>
     </div>
 
@@ -17,11 +25,15 @@
       <ul id="playersList"></ul>
     </div>
 
-    <canvas id="board"></canvas>
-    <div id="menu">
-      <label for="colorPicker">Escolha sua cor:</label>
-      <input type="color" id="colorPicker" />
+    <div id="container-board">
+      <canvas id="board"></canvas>
+      <div id="menu">
+        <button id="clearBtn">🧹 Limpar Quadro</button>
+        <label for="colorPicker">Escolha sua cor:</label>
+        <input type="color" id="colorPicker" />
+      </div>
     </div>
+
     <div id="users"></div>
 
     <script src="/socket.io/socket.io.js"></script>

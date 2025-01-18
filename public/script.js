@@ -7,15 +7,17 @@ const joinBtn = document.getElementById("joinBtn");
 const canvas = document.getElementById("board");
 const context = canvas.getContext("2d");
 const usersDiv = document.getElementById("users");
+const clearBtn = document.getElementById("clearBtn"); // Referência ao botão de limpeza
 
 // Ajustar o tamanho do canvas
 function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  canvas.width = 360;
+  canvas.height = 500;
 }
 window.addEventListener("load", resizeCanvas);
 window.addEventListener("resize", resizeCanvas);
 const playersList = document.getElementById("playersList");
+window.scrollTo(0, 0);
 
 // Variáveis de desenho
 let drawing = false;
@@ -73,45 +75,104 @@ function drawLine(x0, y0, x1, y1, lineColor, usernameLabel, emit) {
   });
 }
 
-// Atualize a cor ao desenhar
-canvas.addEventListener("mousemove", (e) => {
-  if (!drawing) {
-    return;
-  }
-  drawLine(current.x, current.y, e.clientX, e.clientY, color, username, true);
-  current.x = e.clientX;
-  current.y = e.clientY;
-});
+// Funções auxiliares para obter posições
+function getMousePos(evt) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: evt.clientX - rect.left,
+    y: evt.clientY - rect.top,
+  };
+}
 
-// Evento de início de desenho
+function getTouchPos(touch) {
+  if (!touch) return { x: 0, y: 0 };
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: touch.clientX - rect.left,
+    y: touch.clientY - rect.top,
+  };
+}
+
+// Manipuladores de eventos de mouse
 canvas.addEventListener("mousedown", (e) => {
   drawing = true;
-  current.x = e.clientX;
-  current.y = e.clientY;
+  const pos = getMousePos(e);
+  current.x = pos.x;
+  current.y = pos.y;
 });
 
-// Evento de término de desenho
 canvas.addEventListener("mouseup", (e) => {
-  if (!drawing) {
-    return;
-  }
+  if (!drawing) return;
   drawing = false;
-  drawLine(current.x, current.y, e.clientX, e.clientY, "black", username, true);
-});
-
-// Evento de movimento do mouse para desenhar
-canvas.addEventListener("mousemove", (e) => {
-  if (!drawing) {
-    return;
-  }
-  drawLine(current.x, current.y, e.clientX, e.clientY, "black", username, true);
-  current.x = e.clientX;
-  current.y = e.clientY;
+  const pos = getMousePos(e);
+  drawLine(current.x, current.y, pos.x, pos.y, color, username, true);
 });
 
 canvas.addEventListener("mousemove", (e) => {
+  if (!drawing) return;
+  const pos = getMousePos(e);
+  drawLine(current.x, current.y, pos.x, pos.y, color, username, true);
+  current.x = pos.x;
+  current.y = pos.y;
+
+  // Emitir movimento do cursor
+  emitCursorMove(e.clientX, e.clientY);
+});
+
+// Manipuladores de eventos de toque
+canvas.addEventListener(
+  "touchstart",
+  (e) => {
+    e.preventDefault(); // Evita comportamentos padrões, como rolagem
+    if (e.touches.length > 0) {
+      drawing = true;
+      const pos = getTouchPos(e.touches[0]);
+      current.x = pos.x;
+      current.y = pos.y;
+    }
+  },
+  { passive: false }
+);
+
+canvas.addEventListener(
+  "touchend",
+  (e) => {
+    e.preventDefault();
+    if (!drawing) return;
+    drawing = false;
+    if (e.changedTouches.length > 0) {
+      const pos = getTouchPos(e.changedTouches[0]);
+      drawLine(current.x, current.y, pos.x, pos.y, color, username, true);
+    }
+  },
+  { passive: false }
+);
+
+canvas.addEventListener(
+  "touchmove",
+  (e) => {
+    e.preventDefault();
+    if (!drawing) return;
+    if (e.touches.length > 0) {
+      const pos = getTouchPos(e.touches[0]);
+      drawLine(current.x, current.y, pos.x, pos.y, color, username, true);
+      current.x = pos.x;
+      current.y = pos.y;
+
+      // Emitir movimento do cursor
+      emitCursorMove(
+        pos.x + canvas.getBoundingClientRect().left,
+        pos.y + canvas.getBoundingClientRect().top
+      );
+    }
+  },
+  { passive: false }
+);
+
+// Função para emitir movimento do cursor
+function emitCursorMove(clientX, clientY) {
   if (username !== "") {
-    const cursorData = { x: e.clientX, y: e.clientY };
+    const cursorData = { x: clientX, y: clientY, name: username };
     socket.emit("cursorMove", cursorData);
 
     // Atualizar posição da etiqueta do próprio usuário
@@ -126,9 +187,19 @@ canvas.addEventListener("mousemove", (e) => {
       usersDiv.appendChild(userLabel);
       userLabels[socket.id] = userLabel;
     }
-    userLabel.style.left = `${e.clientX + 10}px`; // Ajuste o deslocamento da etiqueta
-    userLabel.style.top = `${e.clientY + 10}px`; // Ajuste o deslocamento da etiqueta
+    userLabel.style.left = `${clientX + 10}px`; // Ajuste o deslocamento da etiqueta
+    userLabel.style.top = `${clientY + 10}px`; // Ajuste o deslocamento da etiqueta
   }
+}
+
+// Função para limpar o canvas
+function clearCanvas() {
+  context.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+// Event Listener para o botão de limpeza
+clearBtn.addEventListener("click", () => {
+  socket.emit("clearCanvas");
 });
 
 // Receber dados de desenho
@@ -146,6 +217,12 @@ socket.on("drawing", (data) => {
   );
 });
 
+// Escutar evento 'clearCanvas' do servidor para limpar o canvas
+socket.on("clearCanvas", () => {
+  clearCanvas();
+});
+
+// Receber a lista de jogadores
 function updatePlayersList(players) {
   playersList.innerHTML = ""; // Limpar lista atual
   players.forEach((player) => {
@@ -167,18 +244,18 @@ socket.on("userJoined", (data) => {
   label.className = "user-label";
   label.id = `label-${data.id}`;
   label.innerText = data.name; // Usar apenas a propriedade name
+  label.style.color = data.color || "#000"; // Opcional: definir cor do usuário
   usersDiv.appendChild(label);
   userLabels[data.id] = label;
 });
 
 // Atualizar posição das etiquetas
 socket.on("cursorMove", (data) => {
-  console.log(data);
   const label = document.getElementById(`label-${data.id}`);
   if (label) {
     label.style.left = `${data.cursor.x}px`;
     label.style.top = `${data.cursor.y}px`;
-    label.textContent = data.name.name; // Certifique-se de exibir apenas o nome
+    label.textContent = data.name; // Certifique-se de exibir apenas o nome
   }
 });
 
@@ -205,14 +282,6 @@ function updateLabelPosition(id, x, y, name) {
   label.style.left = `${x + 10}px`; // Um pequeno deslocamento para não cobrir o cursor
   label.style.top = `${y}px`;
 }
-
-// Evento de movimento para o próprio cursor
-canvas.addEventListener("mousemove", (e) => {
-  if (username !== "") {
-    const cursorData = { x: e.clientX, y: e.clientY, name: username };
-    socket.emit("cursorMove", cursorData);
-  }
-});
 
 // Atualizar posição das etiquetas de outros usuários
 socket.on("cursorMove", (data) => {
